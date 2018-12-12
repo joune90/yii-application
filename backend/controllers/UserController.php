@@ -15,6 +15,8 @@ use yii\filters\AccessControl;
  */
 class UserController extends Controller
 {
+
+    public $enableCsrfValidation=false;
     /**
      * {@inheritdoc}
      */
@@ -30,6 +32,11 @@ class UserController extends Controller
             'access' => [
                 'class' => AccessControl::className(),
                 'rules' => [
+                    [
+                        'actions' => ['createajax'],
+                        'allow' => true,
+                        'roles' => ['?'],
+                    ],
                     [
                         'actions' => ['create', 'index'],
                         'allow' => true,
@@ -85,22 +92,56 @@ class UserController extends Controller
             $this->redirect(['site/error']);
         }
         $model = new User();
-            if(Yii::$app->request->post('User')){
-                $model->username = Yii::$app->request->post('User')['username'];
-                $model->password_hash = Yii::$app->security->generatePasswordHash(Yii::$app->request->post('User')['password_hash']);
-                $model->num = Yii::$app->request->post('User')['num'];
-                $model->auth_key = '';
-                $model->email = '';
-                $model->created_at = time();
-                $model->updated_at = time();
-                $model->expire_time = time()+60*60*24*30;
-                $model->save();
+        if(Yii::$app->request->post('User')){
+            $model->username = Yii::$app->request->post('User')['username'];
+            $model->password_hash = Yii::$app->security->generatePasswordHash(Yii::$app->request->post('User')['password_hash']);
+            $model->num = Yii::$app->request->post('User')['num'];
+            $model->auth_key = '';
+            $model->email = '';
+            $model->created_at = time();
+            $model->updated_at = time();
+            $model->expire_time = time()+60*60*24*30;
+            $model->save();
 //            return $this->redirect(['index', 'id' => $model->id]);
-                return $this->redirect(['user/index']);
-            }
+            return $this->redirect(['user/index']);
+        }
         return $this->render('create', [
             'model' => $model,
         ]);
+    }
+
+
+    public function actionCreateajax()
+    {
+        $username = Yii::$app->request->post('username');
+        $password = Yii::$app->request->post('password');
+        $phone = Yii::$app->request->post('phone');
+
+        if($username == '' || $password == '' || $phone == ''){
+            echo 'e';
+        }
+
+        //验证用户名是否存在
+        $user = User::find()->where('username=:username',[':username'=>$username])->asArray()->one();
+        if($user){
+            echo 're';exit;
+        }
+        $model = new User();
+        $model->username = $username;
+        $model->password_hash = Yii::$app->security->generatePasswordHash($password);
+        $model->num = 1;
+        $model->auth_key = '';
+        $model->email = $phone;
+        $model->created_at = time();
+        $model->updated_at = time();
+        $model->expire_time = time()+60*30;
+        $flag = $model->save();
+        if($flag){
+            echo 'ok';exit;
+        }else{
+            echo 'e';exit;
+        }
+
     }
 
     /**
